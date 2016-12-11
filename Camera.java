@@ -1,4 +1,3 @@
-
 import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Font;
@@ -10,6 +9,8 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -40,7 +41,7 @@ import org.opencv.video.Video;
 import org.opencv.highgui.VideoCapture;
 import org.opencv.imgproc.Moments;
 
-public class Camera extends javax.swing.JFrame {
+public class Camera extends javax.swing.JFrame implements MouseListener {
 
     private static final long serialVersionUID = 1L;
     // definitions
@@ -73,8 +74,59 @@ public class Camera extends javax.swing.JFrame {
     private final int x = (int) Toolkit.getDefaultToolkit().getScreenSize().getWidth();
     private final int y = (int) Toolkit.getDefaultToolkit().getScreenSize().getHeight();
     private boolean SVM = false;
+    private boolean threshold = false;
+    /*private boolean first = true;
+    int r_min=0;
+    int g_min=0;
+    int b_min=0;
+    int r_max=0;
+    int g_max=0;
+    int b_max=0;
+    private Scalar hsv_min = new Scalar(0,0,0,0);
+    private Scalar hsv_max = new Scalar(0,0,0,0);*/
     
-
+    
+    @Override
+    public void mouseClicked(MouseEvent e){
+        /*java.awt.Point p = e.getLocationOnScreen();
+        Color color = new Color(0,0,0,0);
+        try {
+            Robot rob = new Robot();
+            color = rob.getPixelColor(p.x, p.y);
+        } catch (AWTException ex) {
+            Logger.getLogger(Camera.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if(first == true){
+            r_min=color.getRed();
+            g_min=color.getGreen();
+            b_min=color.getBlue();
+            first=false;   
+        }
+        if(color.getRed()<r_min && first==false)
+            r_min=color.getRed();
+        if(color.getGreen()<g_min && first==false)
+            g_min=color.getGreen();
+        if(color.getBlue()<b_min && first==false)
+            b_min=color.getBlue();
+        if(color.getRed()>r_max)
+            r_max=color.getRed();
+        if(color.getGreen()>g_max)
+            g_max=color.getGreen();
+        if(color.getBlue()>b_max)
+            b_max=color.getBlue();
+        hsv_min = new Scalar(b_min,g_min,r_min,0);
+        hsv_max = new Scalar(b_max,g_max,r_max,0);
+        System.out.println(hsv_min+" "+hsv_max);
+        */
+    }
+    @Override
+    public void mousePressed(MouseEvent e) {}
+    @Override
+    public void mouseReleased(MouseEvent e) {}
+    @Override
+    public void mouseEntered(MouseEvent e) {}
+    @Override
+    public void mouseExited(MouseEvent e) {}
     //class daemon
     class DaemonThread implements Runnable {
 
@@ -89,18 +141,21 @@ public class Camera extends javax.swing.JFrame {
                             webSource.retrieve(frame);
 
                             Imgproc.cvtColor(frame, frame1, Imgproc.COLOR_BGR2HSV);
-                            BL.setText("Blue " + B.getValue());
-                            GL.setText("Green " + G.getValue());
-                            RL.setText("Red " + R.getValue());
+                            LBL.setText("Low H " + LB.getValue());
+                            LGL.setText("Low S " + LG.getValue());
+                            LRL.setText("Low V " + LR.getValue());
+                            BL.setText("High H " + B.getValue());
+                            GL.setText("High S " + G.getValue());
+                            RL.setText("High V " + R.getValue());
 
-                            Scalar hsv_min = new Scalar(0, 0, 0, 0);
-                            Scalar hsv_max = new Scalar(B.getValue(), G.getValue(), R.getValue(), 0);
+                            Scalar hsv_min = new Scalar(LB.getValue(), LG.getValue(), LR.getValue());
+                            Scalar hsv_max = new Scalar(B.getValue(), G.getValue(), R.getValue());
                             //System.out.println(SVM);
 //                             Scalar hsv_min = new Scalar(0, 50, 50, 0);  
 //                             Scalar hsv_max = new Scalar(6, 255, 255, 0);  
 //                             Scalar hsv_min2 = new Scalar(175, 50, 50, 0);  
 //                             Scalar hsv_max2 = new Scalar(179, 255, 255, 0); 
-                            Core.inRange(frame, hsv_min, hsv_max, frame2);
+                            Core.inRange(frame1, hsv_min, hsv_max, frame2);
 //                             Core.inRange(frame1, hsv_min, hsv_max, frame3);           
 //                             Core.inRange(frame1, hsv_min2, hsv_max2, frame4);  
 //                             Core.bitwise_or(frame3, frame4, frame2); 
@@ -134,7 +189,10 @@ public class Camera extends javax.swing.JFrame {
                                 left = tips.size() / 2 == 3;
                                 right = tips.size() / 2 == 2;
                             }
-                            Highgui.imencode(".bmp", frame, mem);
+                            if(threshold==false)
+                                Highgui.imencode(".bmp", frame, mem);
+                            else
+                                Highgui.imencode(".bmp", frame2, mem);
                             Image im = ImageIO.read(new ByteArrayInputStream(mem.toArray()));
                             BufferedImage image = (BufferedImage) im;
                             Graphics g = jPanel1.getGraphics();
@@ -180,6 +238,7 @@ public class Camera extends javax.swing.JFrame {
     public Camera() throws AWTException {
         this.robot = new Robot();
         initComponents();
+        addMouseListener(this);
         webSource = new VideoCapture(0);
         myThread = new DaemonThread();
         Thread t = new Thread(myThread);
@@ -195,13 +254,21 @@ public class Camera extends javax.swing.JFrame {
         jPanel1 = new javax.swing.JPanel();
         settings = new JFrame();
         BGR = new JPanel();
-        B = new JSlider(0, 255);
+        LB = new JSlider(0, 255);
+        LG = new JSlider(0, 255);
+        LR = new JSlider(0, 255);
+        LBL = new JLabel();
+        LGL = new JLabel();
+        LRL = new JLabel();
+        B = new JSlider(0, 179);
         G = new JSlider(0, 255);
         R = new JSlider(0, 255);
         BL = new JLabel();
         GL = new JLabel();
         RL = new JLabel();
         move = new JButton();
+        Threshold=new JButton();
+        Exit = new JButton();
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Mouseless");
         settings.setTitle("Settings");
@@ -217,8 +284,24 @@ public class Camera extends javax.swing.JFrame {
                 }
             }
         });
+        Threshold.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (!threshold) {
+                    threshold = true;
+                    Threshold.setText("Normal");
+                } else if (threshold) {
+                    threshold = false;
+                    Threshold.setText("Threshold");
+                }
+            }
+        });
+        Exit.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            System.exit(0);
+            }
+        });
         this.setSize(660, 520);
-        settings.setSize(230, 200);
+        settings.setSize(230, 520);
         settings.setLocation(670, 0);
         settings.setVisible(true);
         jPanel1.setSize(640, 480);
@@ -226,21 +309,34 @@ public class Camera extends javax.swing.JFrame {
         this.add(jPanel1);
         settings.add(BGR);
         BGR.setLocation(0, 0);
-        B.setValue(179);
-        G.setValue(92);
-        R.setValue(62);
+        LB.setValue(0);
+        LG.setValue(0);
+        LR.setValue(0);
+        B.setValue(255);
+        G.setValue(255);
+        R.setValue(255);
         move.setText("Start Virtual Mouse");
+        Threshold.setText("Threshold");
+        Exit.setText("Exit Virtual Mouse");
+        BGR.add(LBL);
+        BGR.add(LB);
         BGR.add(BL);
         BGR.add(B);
+        BGR.add(LGL);
+        BGR.add(LG);
         BGR.add(GL);
         BGR.add(G);
+        BGR.add(LRL);
+        BGR.add(LR);
         BGR.add(RL);
         BGR.add(R);
         BGR.add(move);
+        BGR.add(Threshold);
+        BGR.add(Exit);
     }
 
     public static void main(String args[]) {
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+        System.load("/usr/local/Cellar/opencv/2.4.12_2/share/OpenCV/java/libopencv_java2412.dylib");
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
@@ -254,6 +350,12 @@ public class Camera extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private JFrame settings;
     private JPanel BGR;
+    private JSlider LB;
+    private JSlider LG;
+    private JSlider LR;
+    private JLabel LBL;
+    private JLabel LGL;
+    private JLabel LRL;
     private JSlider B;
     private JSlider G;
     private JSlider R;
@@ -261,6 +363,8 @@ public class Camera extends javax.swing.JFrame {
     private JLabel GL;
     private JLabel RL;
     private JButton move;
+    private JButton Threshold;
+    private JButton Exit;
 
     public static BufferedImage getFlippedImage(BufferedImage bi) {
         BufferedImage flipped = new BufferedImage(
